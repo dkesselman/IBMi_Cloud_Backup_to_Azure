@@ -1,4 +1,4 @@
-# IBM i Cloud Backup to AZURE BLOB Storage
+# IBM i Cloud Backup to AZURE BLOB Storage (Using Dialog)
 
 
 How many times have I herd "How can I backup my IBM i / AS/400 to the cloud?". 
@@ -8,11 +8,15 @@ Unfortunately "IBM Cloud Storage Solutions for i" (5733-ICC) does not support Az
 On previous projects I published scripts to backup IBM i to "IBM Cloud Object Storage", "WASABI" and "OneDrive".
 
 This IBM i PASE-BASH script uses NodeJS and "azure-storage-cmd" tool https://www.npmjs.com/package/azure-storage-cmd
+I've also included dialog commmand (cdialog). You need to compile cdialog in order to use the script. Dialog brings a Linux-like look&feel to PASE.
+
+# What can the script do?
 
 * Creates a *SAVF for each library and SAVSECDTA when selecting "Save All Libraries"
 * Compress *SAVF with 7zip
 * Generates a CSV with *SAVF content for future references
 * Allow to select the amount of simultaenous processes
+* Uploads backup or individual files to your Azure BLOB container
 
 ![Cloud Menu](https://github.com/dkesselman/IBMi_Cloud_Backup_to_Azure/blob/main/IBMi_Backup_to_AZURE.gif "IBM i Backup to Azure - Menu")
 
@@ -50,7 +54,7 @@ You need to download the .sh to some directory on your IFS, something like "/IBM
 
 Now you just need to adjust values in mnuaz_const.sh to reflect your configuration and run *mnuaz.sh* 
   
-  ATTENTION: Don't use a trailing slash at the end of directions and PATHs !!!
+# ATTENTION: Don't use a trailing slash at the end of directions and PATHs !!!
   
 When saving all libraries to Azure you can monitor backup using tail pointing to your log (from other SSH session):
   
