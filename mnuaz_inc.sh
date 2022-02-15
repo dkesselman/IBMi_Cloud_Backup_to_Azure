@@ -1,52 +1,143 @@
-    TPUT(){ $e "\e[${1};${2}H";}
-   CLEAR(){ $e "\ec";}
-   CIVIS(){ $e "\e[?25l";}
-    DRAW(){ $e "\e%@\e(0";}
-   WRITE(){ $e "\e(B";}
-    MARK(){ $e "\e[7m";}
-  UNMARK(){ $e "\e[27m";}
+#***********************************************************************************# 
+#                           Cloud Functions                                         # 
+#***********************************************************************************# 
 
-    LINE(){ $E ""; $E "\033(0rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\033(B";}
-     POS(){ if [[ $cur == up ]];then ((i--));fi
-            if [[ $cur == dn ]];then ((i++));fi
-            if [[ $i -lt 0   ]];then i=$LM;fi
-            if [[ $i -gt $LM ]];then i=0;fi; }
- 
-                                                                                                                           
-#***********************************************************************************#                                      
-#                           Cloud Functions                                         #                                      
-#***********************************************************************************#                                      
-                                                                                                                          
-BUCKETLS(){ read -p "AZURE Container to list: " azpath ; $AZCMD ls $azpath;LINE;}                                       
-BUCKETPT(){ read -p "AZURE Container : " azpath ; read -p "File on IFS:" ifsfile; $AZCMD -v cp $ifsfile $azpath ;LINE;}                          
-BUCKETGT(){ read -p "AZURE Source file : " azobject; read -p "Target directory on IFS:" ifsfile; $AZCMD -v cp $azobject $ifsfile ;LINE;}
-BUCKETDL(){ read -p "AZURE Source file : " azobject; $AZCMD -v rm $azobject 2>&1 ;LINE;}                                     
- ASKLIB1(){ read -p "Library name: " libname; read -p "AZURE Container: " azpath; ifsfile=$IFSPATH/$libname.7z ;} 
- SAVLIST(){ listfile=$IFSPATH'/'$libname'_lst';system "CPYTOIMPF FROMFILE(BACKUPSAV/BKPLOG $libname ) TOSTMF('$listfile') MBROPT(*ADD) STMFCCSID(1208) RCDDLM(*CRLF) DTAFMT(*DLM) DATFMT(*YYMD)" ;} 
+BUCKETLS(){ 
+          azpath=$(dialog --title "Backup IBM i to Azure - List" --stdout  \
+          --inputbox "AZURE Container:" 0 0) ;
+          retval=$? 
+          case $retval in
+           ${DIALOG_OK-0}) 
+             response=$($AZCMD ls $azpath) 
+             dialog --title  "Backup IBM i to Azure - List" \
+                    --msgbox "$response" 20 70 ;;
+           ${DIALOG_CANCEL-1}) echo "Cancel pressed.";;
+           ${DIALOG_ESC-255}) echo "Esc pressed.";;
+           ${DIALOG_ERROR-255}) echo "Dialog error";;
+           *) echo "Unknown error $retval";;
+          esac 
+
+          };
+BUCKETDL(){
+          azobject=$(dialog --title "Backup IBM i to Azure - Delete" \
+          --stdout  --inputbox "AZURE Source  File:" 0 0);
+          retval=$?
+          case $retval in
+           ${DIALOG_OK-0})
+             response=$($AZCMD -v rm $azobject); 
+             dialog  --title  "Backup IBM i to Azure - Delete"  \ 
+                     --msgbox  "Deleting $azobject -$response" 8 70 ;;
+           ${DIALOG_CANCEL-1}) echo "Cancel pressed.";;
+           ${DIALOG_ESC-255}) echo "Esc pressed.";;
+           ${DIALOG_ERROR-255}) echo "Dialog error" ;;
+           *) echo "Unknown error $retval";;
+          esac          
+          };
+
+BUCKETPT(){ 
+          response=$(dialog --title "Backup IBM i to Azure - Upload" \
+          --form  "Fill Information" 0 0 0 \
+          "AZURE Container:" 1 1 "$azpath" 1 20 20 80 \
+          "IFS PATH to File:" 2 1 "$ifsfile" 2 20 20 80 \
+          3>&1 1>&2 2>&3 3>&- )
+          retval=$? 
+          case $retval in
+           ${DIALOG_OK-0})
+             resp=($response)
+             azpath=${resp[0]}
+             ifsfile=${resp[1]}
+             $AZCMD -v cp $ifsfile $azpath ;;
+           ${DIALOG_CANCEL-1}) echo "Cancel pressed.";;
+           ${DIALOG_ESC-255}) echo "Esc pressed.";;
+           ${DIALOG_ERROR-255}) echo "Dialog error" ;;
+           *) echo "Unknown error $retval";;
+          esac          
+          };
+
+BUCKETGT(){
+          response=$(dialog --title "Backup IBM i to Azure - Download" \
+          --form  "Fill Information" 0 0 0 "AZURE Source File:" 1 1 \
+          "$azobject" 1 20 20 80 "IFS PATH to File:" 2 1 "$ifsfile" \
+          2 20 20 80\
+          3>&1 1>&2 2>&3 3>&- )
+          retval=$? 
+          case $retval in
+           ${DIALOG_OK-0}) 
+             resp=($response);
+             azobject=${resp[0]}
+             ifsfile=${resp[1]}
+             $AZCMD -v cp $azobject $ifsfile ;;
+           ${DIALOG_CANCEL-1}) echo "Cancel pressed.";;
+           ${DIALOG_ESC-255}) echo "Esc pressed.";;
+           ${DIALOG_ERROR-255}) echo "Dialog error";;
+           *) echo "Unknown error $retval";;
+          esac 
+          };
+
+ ASKLIB1(){ 
+          libname="";
+          azpath="";
+          response=$(dialog --title "Backup IBM i to Azure - Backup Library" \
+          --form "Fill Information" 0 0 0 \
+          "Library Name:    " 1 1 "$libname" 1 20 20 80 \
+          "AZURE Container: " 2 1 "$azpath"  2 20 20 80 \
+          3>&1 1>&2 2>&3 3>&- ); 
+		  retval=$? 
+          case $retval in
+           ${DIALOG_OK-0}) 
+             resp=($response);
+			 libname=${resp[0]};
+			 azpath=${resp[1]};
+			 ifsfile=$IFSPATH/$libname.7z ;
+			 $AZCMD -v cp $azobject $ifsfile ;;
+           ${DIALOG_CANCEL-1}) echo "Cancel pressed.";;
+           ${DIALOG_ESC-255}) echo "Esc pressed.";;
+           ${DIALOG_ERROR-255}) echo "Dialog error";;
+           *) echo "Unknown error $retval"
+          esac 
+		  };
+
+
+ SAVLIST(){ 
+          listfile=$IFSPATH'/'$libname'_lst';
+          system "CPYTOIMPF FROMFILE(BACKUPSAV/BKPLOG $libname)  \
+            TOSTMF('$listfile') MBROPT(*ADD)  STMFCCSID(1208)    \ 
+            RCDDLM(*CRLF) DTAFMT(*DLM) DATFMT(*YYMD)" ;}; 
  CRTLIB1(){ [ -d $IFSPATH ] && mkdir -p $IFSPATH; system "CRTLIB BACKUPSAV" 2>&1 ;  }         
      B2C(){ $AZCMD -v cp $ifsfile $azobject ;$AZCMD -v cp $ifslog $azlog;}              
-BKPTOCLD(){ ASKLIB1;CRTLIB1;SAVLIB1;SAVLIST;ZIPLIB1; B2C;LINE;}         
-SAVZIP2(){ $E 'Saving Library:' $libname ' - ' $dt;SAVLIB1;SAVLIST;ZIPLIB1;B2C;LINE;}
+BKPTOCLD(){
+			ASKLIB1;
+			if [$libname != ""]; then 
+				CRTLIB1;
+				SAVLIB1;
+				SAVLIST;
+				ZIPLIB1; 
+				B2C;
+			fi
+			}         
+SAVZIP2(){ $E 'Saving Library:' $libname ' - ' $dt;SAVLIB1;SAVLIST;ZIPLIB1;B2C;}
  UNZIP1(){ 7z e -y $libname"_lst.7z" ; }
 #***********************************************************************************#        
 LSTCLDBKP(){
 ASKLIB1;
-cd $IFSPATH
+if [$libname != ""]; then 
 
-azobject=$azpath"/"$libname"_lst.7z";
-ifsobject=$IFSPATH"/"$libname"_lst.7z";
-echo $azobject  ;
-$AZCMD -v cp $azobject $ifsobject ; 
-UNZIP1;
-#------------------------------------------
-CLEAR;WRITE;MARK;TPUT 6 0 
-$E $FLISTHD; 
-awk -F "," '{print($3,$12,$13,$15,$16,$17,$18,$22)}' $libname"_lst" | tr -d '"';
-#------------------------------------------
+	cd $IFSPATH
+
+	azobject=$azpath"/"$libname"_lst.7z";
+	ifsobject=$IFSPATH"/"$libname"_lst.7z";
+	echo $azobject  ;
+	$AZCMD -v cp $azobject $ifsobject ; 
+	UNZIP1;
+	#------------------------------------------
+	CLEAR;WRITE;MARK;TPUT 6 0 
+	$E $FLISTHD; 
+	awk -F "," '{print($3,$12,$13,$15,$16,$17,$18,$22)}' $libname"_lst" | tr -d '"';
+	#------------------------------------------
+fi
 }
 #***********************************************************************************#                                                                                                                                                     
 SAVLIB1(){ 
-
 
 azobject=$azpath"/"$libname".7z" ;
 azlog=$azpath"/"$libname"_lst.7z" ;
@@ -59,7 +150,6 @@ fi
 if [ -f "/QSYS.LIB/BACKUPSAV.LIB/"$libname".FILE" ]; then
     rm /QSYS.LIB/BACKUPSAV.LIB/$libname.FILE  2>&1 ;
 fi
-
 
 system "RMVM FILE(BACKUPSAV/BKPLOG) MBR($libname)" 2>&1;
 system "CRTSAVF BACKUPSAV/$libname"; 
@@ -167,50 +257,11 @@ done
 
 wait
 
-LINE;
+
 $e $i "Libraries backed up to " $azpath;
  
 dt=$(date '+%Y%m%d-%H%M%S');
 echo 'Backup ending: BKP' $dt2 ' - ' $dt > $LOGNAME                                                                                                                                                                                     
 } 
 #***********************************************************************************#                             
-                                                                                                    
-      R(){ CLEAR ;stty sane;$e "\ec\e[94m\e[J";};                                          
-    HEAD(){ DRAW                                                                      
-           TPUT 4 0                                                         
-           for each in $(seq 1 14);do                                                                                          
-           $E "   x                                          x"                                                                
-           done                                                                                                                
-           WRITE;MARK;TPUT 4 5                                                                                                  
-           $E "        AZURE BLOB BACKUP MENU            ";UNMARK;}                                                            
-           i=0; CLEAR; CIVIS;NULL=/dev/null                                                                                
-   FOOT(){ MARK;TPUT 17 5                                                                                                 
-           printf "ENTER - SELECT,NEXT                       ";UNMARK;}     
-                                               
-  ARROW(){ read -s -n3 key 2>/dev/null >&2                                                                                
-        if [[ $key = $ESC[A ]];then echo up;fi                                                           
-        if [[ $key = $ESC[B ]];then echo dn;fi; }   
-                                                                          
-     M0(){ TPUT  7 11; $e "List content on AZURE         ";}                                                               
-     M1(){ TPUT  8 11; $e "Upload file to  AZURE         ";}                                                               
-     M2(){ TPUT  9 11; $e "Get file from AZURE           ";}                                                              
-     M3(){ TPUT 10 11; $e "Delete file from AZURE        ";}                                                              
-     M4(){ TPUT 11 11; $e "Save Library to AZURE         ";}                                                                    
-     M5(){ TPUT 12 11; $e "Save ALL Libraries to AZURE   ";} 
-     M6(){ TPUT 13 11; $e "List library saved on AZURE   ";}
-     M7(){ TPUT 14 11; $e "ABOUT                         ";}                                                              
-     M8(){ TPUT 15 11; $e "EXIT                          ";}                                                             
-      LM=8;                                    
-                                                                             
-   MENU(){ for each in $(seq 0 $LM);do M${each};done;}                                                                     
-
-REFRESH(){ after=$((i+1)); before=$((i-1))                                                                                 
-           if [[ $before -lt 0  ]];then before=$LM;fi                                                                     
-           if [[ $after -gt $LM ]];then after=0;fi                                                                        
-           if [[ $j -lt $i      ]];then UNMARK;M$before;else UNMARK;M$after;fi                                                  
-           if [[ $after -eq 0 ]] || [ $before -eq $LM ];then                                                                    
-           UNMARK; M$before; M$after;fi;j=$i;UNMARK;M$before;M$after;}                           
-   INIT(){ R;HEAD;FOOT;MENU;}                                                                                              
-     SC(){ REFRESH;MARK;$S;$b;cur=`ARROW`;}                                                                                   
-     ES(){ MARK;$e "    ENTER = Main Menu    ";$b;read;INIT;};INIT          
-
+  
