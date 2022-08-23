@@ -1,7 +1,7 @@
 # IBM i Cloud Backup to AZURE BLOB Storage (Using Dialog)
 
 
-How many times have I herd "How can I backup my IBM i / AS/400 to the cloud?". 
+How many times have I heard "How can I backup my IBM i / AS/400 to the cloud?". 
 Today we have IBM Cloud Power Virtual Servers (Power VS) where you can create your LPAR with IBM i/AIX/Linux on Power , and the solution "by the book" is to use IBM Cloud Object Storage (ICOS) + BRMS + ICC . 
 Unfortunately "IBM Cloud Storage Solutions for i" (5733-ICC) does not support Azure Cloud yet. 
 
@@ -61,3 +61,7 @@ When saving all libraries to Azure you can monitor backup using tail pointing to
   tail -f /backup2cloud/BAK20220206-095201.log
   
 Please, submit your comments and questions to diego@esselware.com
+
+NOTE:
+
+I have found some issues with blob-cmd tool. Probably will switch to cURL on next release
